@@ -129,3 +129,13 @@ if __name__ == '__main__':
           cfg_scale=5.0,
           save_path='./results/reflow-cfg',
           device='cuda')
+
+    # consistency FM
+    infer(checkpoint_path='./checkpoints/1211_consistencyFM/miniunet_20.pth',
+          base_channels=64,
+          step=2,
+          num_imgs=100,
+          y=torch.tensor(y),
+          cfg_scale=5.0,
+          save_path='./results/reflow-fm-cfg',
+          device='cuda')
