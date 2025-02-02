@@ -1,3 +1,9 @@
+Consistency Flow Matching（一致性流匹配） train_cfm.py
+
+shortcut model train_shortcut.py
+
+shortcut model 目前效果最好
+
 # 从零手搓Flow Matching（Rectified Flow）
 
 作者：Tong Tong 
