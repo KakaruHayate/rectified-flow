@@ -15,7 +15,9 @@ def infer(
         cfg_scale=7.0,
         save_path='./results',
         save_noise_path=None,
-        device='cuda'):
+        device='cuda',
+        shortcut=False
+        ):
     """flow matching模型推理
 
     Args:
@@ -43,7 +45,7 @@ def infer(
         y = y.to(device)
     # 生成一些图片
     # 加载模型
-    model = MiniUnet(base_channels=base_channels)
+    model = MiniUnet(base_channels=base_channels, shortcut=shortcut)
     model.to(device)
     model.eval()
 
@@ -69,6 +71,11 @@ def infer(
             if y is not None:
                 y_i = y[i].unsqueeze(0)
 
+            if shortcut:
+                d = torch.tensor([dt]).to(device)
+            else:
+                d = None
+            
             for j in range(step):
                 if j % 10 == 0:
                     print(f'Generating {i}th image, step {j}...')
@@ -79,12 +86,12 @@ def infer(
                     # classifier-free guidance需要同时预测有条件和无条件的输出
                     # 利用CFG的公式：x = x_uncond + cfg_scale * (x_cond - x_uncond)
                     # 为什么用score推导的公式放到预测向量场v的情形可以直接用？ SDE ODE
-                    v_pred_uncond = model(x=x_t, t=t)
-                    v_pred_cond = model(x=x_t, t=t, y=y_i)
+                    v_pred_uncond = model(x=x_t, t=t, y=None, d=d)
+                    v_pred_cond = model(x=x_t, t=t, y=y_i, d=d)
                     v_pred = v_pred_uncond + cfg_scale * (v_pred_cond -
                                                           v_pred_uncond)
                 else:
-                    v_pred = model(x=x_t, t=t)
+                    v_pred = model(x=x_t, t=t, y=None, d=d)
 
                 # 使用Euler法计算下一个时间的x_t
                 x_t = rf.euler(x_t, v_pred, dt)
@@ -113,7 +120,7 @@ if __name__ == '__main__':
     # v1.1 1-RF
     infer(checkpoint_path='./checkpoints/v1.1-cfg/miniunet_49.pth',
           base_channels=64,
-          step=2,
+          step=4,
           num_imgs=100,
           y=torch.tensor(y),
           cfg_scale=5.0,
@@ -123,7 +130,7 @@ if __name__ == '__main__':
     # v1.2 2-RF
     infer(checkpoint_path='./checkpoints/v1.2-reflow-cfg/miniunet_19.pth',
           base_channels=64,
-          step=2,
+          step=4,
           num_imgs=100,
           y=torch.tensor(y),
           cfg_scale=5.0,
@@ -133,9 +140,20 @@ if __name__ == '__main__':
     # consistency FM
     infer(checkpoint_path='./checkpoints/1211_consistencyFM/miniunet_20.pth',
           base_channels=64,
-          step=2,
+          step=4,
           num_imgs=100,
           y=torch.tensor(y),
           cfg_scale=5.0,
-          save_path='./results/reflow-fm-cfg',
+          save_path='./results/cfm-cfg',
           device='cuda')
+
+    # shortcut
+    infer(checkpoint_path='./checkpoints/0131-shortcut-2/miniunet_19.pth',
+          base_channels=64,
+          step=4,
+          num_imgs=100,
+          y=torch.tensor(y),
+          cfg_scale=5.0,
+          save_path='./results/shortcut',
+          device='cuda', 
+          shortcut=True)
