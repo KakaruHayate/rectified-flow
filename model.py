@@ -172,7 +172,7 @@ class MiniUnet(nn.Module):
         两个下采样block 一个中间block 两个上采样block
     """
 
-    def __init__(self, base_channels=16, time_emb_dim=None, shortcut=False):
+    def __init__(self, base_channels=16, time_emb_dim=None, shortcut=False, meanflow=False):
         super(MiniUnet, self).__init__()
 
         if time_emb_dim is None:
@@ -182,8 +182,9 @@ class MiniUnet(nn.Module):
 
         self.conv_in = nn.Conv2d(1, base_channels, kernel_size=3, padding=1)
         
-        self.shortcut=shortcut
-        if self.shortcut:
+        self.shortcut = shortcut
+        self.meanflow = meanflow
+        if self.shortcut or self.meanflow:
             self.mlp = nn.Sequential(
                 nn.Linear(self.time_emb_dim, self.time_emb_dim * 4),
                 nn.SiLU(),
@@ -298,7 +299,8 @@ class MiniUnet(nn.Module):
 
         return torch.cat([sin_emb, cos_emb], dim=-1)
 
-    def forward(self, x, t, y=None, d=None):
+    def forward(self, x, t, d=None, y=None):
+        # 2025/5/21:更新meanflow model，这里d顺带代表r
         """前向传播函数
 
         Args:
@@ -306,16 +308,12 @@ class MiniUnet(nn.Module):
             t (torch.Tensor): 时间，维度为[B]
             y (torch.Tensor, optional): 数据标签（每一个标签是一个类别int型）或text文本（下一版本支持）,维度为[B]或[B, L]。 Defaults to None.
         """
-        # ic(x.shape)
-        # ic(y.shape)
-        # ic(d.shape)
-        # ic(t.shape)
         # x:(B, C, H, W)
         # 时间编码加上
         x = self.conv_in(x)
         # 时间编码
         temb = self.time_emb(t, self.base_channels)
-        if self.shortcut:
+        if self.shortcut or self.meanflow:
             temb = self.mlp2(temb) # 需要与d区分所以引入非线性
         # 这里注意，我们把temb和labelemb加起来，作为一个整体的temb输入到MiniUnet中，让模型进行感知！二者编码维度一样，可以直接相加！就把label的条件信息融入进去了！
         if y is not None:

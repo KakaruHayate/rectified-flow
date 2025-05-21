@@ -5,7 +5,8 @@ lr: 0.00001  # 学习率
 lr_adjust_epoch: 10 # 学习率调整的epoch，降为原有的10%
 batch_print_interval: 100 # 打印间隔，以batch为单位
 checkpoint_save_interval: 10 # 模型保存间隔，以epoch为单位
-save_path: './checkpoints/0131-shortcut-2'  # 模型保存路径
+save_path: './checkpoints/0521-meanflow-2'  # 模型保存路径
 use_cfg: True  # 是否使用classifier-free guidance，开启就可以训练条件生成模型了
-shortcut: True # 使用shortcut model
+meanflow: True # 使用meanflow model
+flow_ratio: 0.5 # 使部分t=r
 device: 'cuda' # cuda、cpu、mps(only macbook)
