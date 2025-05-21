@@ -160,7 +160,7 @@ def train(config: str):
             # v_pred = model(x=x_t, t=t, y=y)
             model_partial = partial(model, y=y)
             u, dudt = torch.autograd.functional.jvp(
-                lambda x, t, d: model(x, t, d),  # 模型函数
+                lambda x, t, d: model_partial(x, t, d),  # 模型函数
                 (x_t, t, r),                               # 输入参数
                 (v_hat, torch.ones_like(t), torch.zeros_like(r)),  # 切向量（用于JVP）
                 create_graph=True  # 保留计算图以支持二阶导数
