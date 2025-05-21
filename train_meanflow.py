@@ -150,10 +150,12 @@ def train(config: str):
             # 这里换一种方式进行CFG，先计算uncond部分
             y = torch.tensor(y, device=device, dtype=torch.float32)
             if use_cfg:
-                y_uncond = -torch.ones_like(y).to(device)
+                y_uncond = torch.ones_like(y).to(device) * 10
                 with torch.no_grad():
                     u_t = model(x=x_t, t=t, y=y_uncond, d=r) # 借用shortcut model的d输入项
-                v_hat = (v + u_t) * 0.5
+                v_hat = 2 * v + (1-2) * u_t
+                cfg_mask = torch.rand_like(y.float()) < 0.2
+                y = torch.where(cfg_mask, y_uncond, y)
             else:
                 v_hat = v
 
@@ -174,12 +176,13 @@ def train(config: str):
             # 损失计算（自适应L2损失）
             error = u - u_target.detach()
             loss = adaptive_l2_loss(error)     # 自适应加权L2损失
+            mse = (error.detach() ** 2).mean()
 
             loss.backward()
             optimizer.step()
 
             if batch % batch_print_interval == 0:
-                print(f'[Epoch {epoch}] [batch {batch}] loss: {loss.item()}')
+                print(f'[Epoch {epoch}] [batch {batch}] loss: {loss.item()} MSE: {mse.item()}')
 
             loss_list.append(loss.item())
 
